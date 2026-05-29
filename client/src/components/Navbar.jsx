@@ -1,11 +1,13 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/authStore.js";
+import { disconnectSocket } from "../socket.js";
 
 export default function Navbar() {
   const { user, logout } = useAuthStore();
   const nav = useNavigate();
 
   function handleLogout() {
+    disconnectSocket();
     logout();
     nav("/login");
   }
@@ -16,6 +18,7 @@ export default function Navbar() {
         <Link to="/" className="text-zinc-100 font-semibold">peerprep</Link>
         {user && (
           <div className="flex items-center gap-4 text-sm">
+            <Link to="/find-peer" className="text-zinc-300 hover:text-white">find peer</Link>
             <Link to="/profile" className="text-zinc-300 hover:text-white">profile</Link>
             <span className="text-zinc-500">|</span>
             <span className="text-zinc-400">{user.name}</span>

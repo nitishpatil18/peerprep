@@ -4,8 +4,12 @@ import Login from "./pages/Login.jsx";
 import Signup from "./pages/Signup.jsx";
 import Home from "./pages/Home.jsx";
 import Profile from "./pages/Profile.jsx";
+import FindPeer from "./pages/FindPeer.jsx";
+import Session from "./pages/Session.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import ProfileGate from "./components/ProfileGate.jsx";
+import SocketProvider from "./components/SocketProvider.jsx";
+import ProposalModal from "./components/ProposalModal.jsx";
 import { useAuthStore } from "./store/authStore.js";
 
 export default function App() {
@@ -15,28 +19,49 @@ export default function App() {
   }, [hydrate]);
 
   return (
-    <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route path="/signup" element={<Signup />} />
-      <Route
-        path="/profile"
-        element={
-          <ProtectedRoute>
-            <Profile />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/"
-        element={
-          <ProtectedRoute>
-            <ProfileGate>
-              <Home />
-            </ProfileGate>
-          </ProtectedRoute>
-        }
-      />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <SocketProvider>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/find-peer"
+          element={
+            <ProtectedRoute>
+              <ProfileGate>
+                <FindPeer />
+              </ProfileGate>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/session/:sessionId"
+          element={
+            <ProtectedRoute>
+              <Session />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <ProfileGate>
+                <Home />
+              </ProfileGate>
+            </ProtectedRoute>
+          }
+        />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+      <ProposalModal />
+    </SocketProvider>
   );
 }

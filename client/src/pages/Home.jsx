@@ -14,26 +14,29 @@ export default function Home() {
         <h1 className="text-3xl font-semibold">welcome, {user?.name}</h1>
         <p className="mt-2 text-zinc-400">
           {profile?.isComplete
-            ? "your profile is complete. matchmaking comes next."
+            ? "ready to practice. find a peer to get started."
             : "complete your profile to enable matchmaking."}
         </p>
 
         <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Link
+            to="/find-peer"
+            className="block p-5 border border-zinc-800 rounded hover:bg-zinc-900"
+          >
+            <div className="text-zinc-100 font-medium">find a peer</div>
+            <div className="text-sm text-zinc-400 mt-1">
+              get matched for a live mock interview
+            </div>
+          </Link>
           <Link
             to="/profile"
             className="block p-5 border border-zinc-800 rounded hover:bg-zinc-900"
           >
             <div className="text-zinc-100 font-medium">profile</div>
             <div className="text-sm text-zinc-400 mt-1">
-              target role, skills, topics, availability
+              update target role, skills, availability
             </div>
           </Link>
-          <div className="block p-5 border border-zinc-800 rounded opacity-50">
-            <div className="text-zinc-100 font-medium">find a peer</div>
-            <div className="text-sm text-zinc-400 mt-1">
-              coming in phase 3
-            </div>
-          </div>
         </div>
       </div>
     </div>
