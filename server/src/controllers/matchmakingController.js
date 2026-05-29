@@ -5,6 +5,7 @@ import {
   getUserState,
   queueSize,
 } from "../services/queueService.js";
+import { respondToProposal } from "../services/matchmakerService.js";
 
 export async function joinQueue(req, res) {
   const profile = await Profile.findOne({ user: req.user.id });
@@ -39,4 +40,14 @@ export async function getQueueState(req, res) {
   const state = await getUserState(req.user.id);
   const size = await queueSize();
   res.json({ state, queueSize: size });
+}
+
+export async function respondProposal(req, res) {
+  const { proposalId, accept } = req.body || {};
+  if (!proposalId || typeof accept !== "boolean") {
+    return res.status(400).json({ error: "proposalId and accept required" });
+  }
+  const result = await respondToProposal(proposalId, req.user.id, accept);
+  if (result.error) return res.status(400).json(result);
+  res.json(result);
 }
