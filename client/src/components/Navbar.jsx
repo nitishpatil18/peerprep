@@ -16,6 +16,8 @@ export default function Navbar() {
         <Link to="/" className="text-zinc-100 font-semibold">peerprep</Link>
         {user && (
           <div className="flex items-center gap-4 text-sm">
+            <Link to="/profile" className="text-zinc-300 hover:text-white">profile</Link>
+            <span className="text-zinc-500">|</span>
             <span className="text-zinc-400">{user.name}</span>
             <button onClick={handleLogout} className="text-zinc-300 hover:text-white">
               logout
