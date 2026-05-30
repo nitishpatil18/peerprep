@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import Navbar from "../components/Navbar.jsx";
 import VideoTile from "../components/VideoTile.jsx";
 import CallControls from "../components/CallControls.jsx";
+import CollabEditor from "../components/CollabEditor.jsx";
 import { useWebRTC } from "../hooks/useWebRTC.js";
 import { fetchSession } from "../api/sessions.js";
 
@@ -61,42 +62,42 @@ export default function Session() {
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
       <Navbar />
-      <div className="max-w-6xl mx-auto px-4 py-6">
-        <div className="flex items-center justify-between mb-4">
+      <div className="max-w-7xl mx-auto px-4 py-4">
+        <div className="flex items-center justify-between mb-3">
           <div>
-            <h1 className="text-xl font-semibold">mock interview session</h1>
+            <h1 className="text-lg font-semibold">mock interview session</h1>
             <p className="text-xs text-zinc-500 font-mono mt-0.5">{sessionId}</p>
           </div>
           <div className="text-xs text-zinc-400">
-            status: <span className="text-zinc-200">{connectionState}</span>
+            call: <span className="text-zinc-200">{connectionState}</span>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <VideoTile
-            stream={localStream}
-            label={`you${me?.name ? ` (${me.name})` : ""}`}
-            muted
-            mirror
-          />
-          <VideoTile
-            stream={remoteStream}
-            label={peer?.name || "peer"}
-          />
-        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="lg:col-span-2 space-y-3">
+            <CollabEditor sessionId={sessionId} />
+          </div>
 
-        {rtcError && (
-          <p className="text-sm text-red-400 mb-3 text-center">{rtcError}</p>
-        )}
-
-        <CallControls
-          onToggleAudio={toggleAudio}
-          onToggleVideo={toggleVideo}
-          onEndCall={handleEnd}
-        />
-
-        <div className="mt-8 p-5 border border-dashed border-zinc-700 rounded text-center text-sm text-zinc-500">
-          collaborative code editor coming in phase 4b.
+          <div className="space-y-3">
+            <VideoTile
+              stream={localStream}
+              label={`you${me?.name ? ` (${me.name})` : ""}`}
+              muted
+              mirror
+            />
+            <VideoTile
+              stream={remoteStream}
+              label={peer?.name || "peer"}
+            />
+            {rtcError && (
+              <p className="text-xs text-red-400 text-center">{rtcError}</p>
+            )}
+            <CallControls
+              onToggleAudio={toggleAudio}
+              onToggleVideo={toggleVideo}
+              onEndCall={handleEnd}
+            />
+          </div>
         </div>
       </div>
     </div>
