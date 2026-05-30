@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { ArrowRight, History, Sparkles, AlertCircle } from "lucide-react";
 import Navbar from "../components/Navbar.jsx";
+import { Container, Card, Button, Badge, Skeleton, EmptyState } from "../components/ui";
+
 import { listSessions } from "../api/sessions.js";
 
 function formatDuration(secs) {
@@ -14,12 +17,28 @@ function formatDuration(secs) {
 function formatDate(d) {
   if (!d) return "";
   const date = new Date(d);
-  return date.toLocaleString();
+  const now = new Date();
+  const diffMs = now - date;
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  if (diffDays === 0) {
+    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  }
+  if (diffDays === 1) return "yesterday";
+  if (diffDays < 7) return `${diffDays} days ago`;
+  return date.toLocaleDateString();
 }
+
+const FILTERS = [
+  { value: "all", label: "all" },
+  { value: "completed", label: "completed" },
+  { value: "active", label: "active" },
+  { value: "cancelled", label: "cancelled" },
+];
 
 export default function Sessions() {
   const [items, setItems] = useState(null);
   const [err, setErr] = useState(null);
+  const [filter, setFilter] = useState("all");
 
   useEffect(() => {
     listSessions()
@@ -27,73 +46,124 @@ export default function Sessions() {
       .catch((e) => setErr(e.response?.data?.error || "failed to load"));
   }, []);
 
+  const filtered = items?.filter((s) => filter === "all" || s.status === filter) || [];
+
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
       <Navbar />
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <h1 className="text-2xl font-semibold">your sessions</h1>
-        <p className="mt-1 text-sm text-zinc-400">
-          last 50 mock interviews, newest first.
-        </p>
 
-        {err && <p className="mt-4 text-red-400 text-sm">{err}</p>}
+      <Container size="lg" className="py-8 md:py-12">
+        <div className="flex items-end justify-between flex-wrap gap-4 mb-6">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">sessions</h1>
+            <p className="mt-1 text-sm text-zinc-400">
+              your past and active mock interviews. last 50, newest first.
+            </p>
+          </div>
+          <Link to="/find-peer">
+            <Button>start a new session <ArrowRight className="h-4 w-4" /></Button>
+          </Link>
+        </div>
 
-        {!items && !err && (
-          <p className="mt-6 text-zinc-500 text-sm">loading...</p>
+        {items && items.length > 0 && (
+          <div className="mb-4 flex items-center gap-1.5 flex-wrap">
+            {FILTERS.map((f) => (
+              <button
+                key={f.value}
+                onClick={() => setFilter(f.value)}
+                className={`px-3 py-1.5 text-xs rounded-md font-medium transition-colors ${
+                  filter === f.value
+                    ? "bg-zinc-100 text-zinc-900"
+                    : "border border-zinc-800 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900"
+                }`}
+              >
+                {f.label}
+                {f.value !== "all" && (
+                  <span className="ml-1.5 text-zinc-500">
+                    {items.filter((s) => s.status === f.value).length}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {err && (
+          <Card className="p-4 border-red-500/20 bg-red-500/5">
+            <div className="flex items-start gap-3 text-sm">
+              <AlertCircle className="h-4 w-4 mt-0.5 text-red-400 flex-shrink-0" />
+              <span className="text-red-300">{err}</span>
+            </div>
+          </Card>
+        )}
+
+        {items === null && !err && (
+          <div className="space-y-2">
+            {[0, 1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-20 w-full" />
+            ))}
+          </div>
         )}
 
         {items && items.length === 0 && (
-          <p className="mt-6 text-zinc-500 text-sm">
-            no sessions yet. <Link to="/find-peer" className="text-zinc-200 underline">find a peer</Link>.
-          </p>
+          <EmptyState
+            icon={Sparkles}
+            title="no sessions yet"
+            description="match with a peer to run your first mock interview. your history will appear here."
+            action={
+              <Link to="/find-peer">
+                <Button>find a peer</Button>
+              </Link>
+            }
+          />
         )}
 
-        {items && items.length > 0 && (
-          <ul className="mt-6 space-y-2">
-            {items.map((s) => (
-              <li key={s.id}>
-                <Link
-                  to={`/sessions/${s.id}`}
-                  className="block p-4 border border-zinc-800 rounded hover:bg-zinc-900"
-                >
-                  <div className="flex items-center justify-between flex-wrap gap-2">
-                    <div>
-                      <div className="text-zinc-100 font-medium">
+        {items && items.length > 0 && filtered.length === 0 && (
+          <EmptyState
+            icon={History}
+            title={`no ${filter} sessions`}
+            description="try a different filter."
+          />
+        )}
+
+        {filtered.length > 0 && (
+          <div className="space-y-2">
+            {filtered.map((s) => (
+              <Link key={s.id} to={`/sessions/${s.id}`} className="block">
+                <Card interactive className="p-4 flex items-center justify-between gap-4">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-medium text-zinc-100 truncate">
                         with {s.peer?.name || "unknown"}
-                      </div>
-                      <div className="text-xs text-zinc-500 mt-0.5">
-                        {formatDate(s.createdAt)}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 text-xs">
-                      <span className={`px-2 py-0.5 rounded ${
-                        s.status === "completed"
-                          ? "bg-green-500/10 text-green-400"
-                          : s.status === "cancelled"
-                            ? "bg-zinc-800 text-zinc-400"
-                            : "bg-blue-500/10 text-blue-400"
-                      }`}>
+                      </span>
+                      <Badge
+                        tone={
+                          s.status === "completed"
+                            ? "success"
+                            : s.status === "active"
+                            ? "info"
+                            : "default"
+                        }
+                      >
                         {s.status}
-                      </span>
-                      <span className="text-zinc-400">
-                        {formatDuration(s.durationSeconds)}
-                      </span>
-                      <span className="text-zinc-500">
-                        {s.finalLanguage || "python"}
-                      </span>
+                      </Badge>
+                    </div>
+                    <div className="mt-1 text-xs text-zinc-500 flex flex-wrap gap-x-3 gap-y-0.5">
+                      <span>{formatDate(s.createdAt)}</span>
+                      <span>{formatDuration(s.durationSeconds)}</span>
+                      <span>{s.finalLanguage || "python"}</span>
                       {typeof s.matchScore === "number" && (
-                        <span className="text-zinc-500">
-                          score {(s.matchScore * 100).toFixed(0)}%
-                        </span>
+                        <span>match {(s.matchScore * 100).toFixed(0)}%</span>
                       )}
                     </div>
                   </div>
-                </Link>
-              </li>
+                  <ArrowRight className="h-4 w-4 text-zinc-600 flex-shrink-0" />
+                </Card>
+              </Link>
             ))}
-          </ul>
+          </div>
         )}
-      </div>
+      </Container>
     </div>
   );
 }
