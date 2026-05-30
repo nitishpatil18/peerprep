@@ -1,5 +1,6 @@
 import { Server } from "socket.io";
 import { verifyToken } from "../utils/jwt.js";
+import { registerSessionHandlers } from "./sessionSignaling.js";
 
 let io = null;
 
@@ -26,6 +27,8 @@ export function initSocket(httpServer) {
   io.on("connection", (socket) => {
     socket.join(`user:${socket.userId}`);
     console.log(`socket connected: user=${socket.userId} sid=${socket.id}`);
+
+    registerSessionHandlers(io, socket);
 
     socket.on("disconnect", (reason) => {
       console.log(`socket disconnected: user=${socket.userId} reason=${reason}`);
