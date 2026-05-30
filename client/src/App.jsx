@@ -6,6 +6,8 @@ import Home from "./pages/Home.jsx";
 import Profile from "./pages/Profile.jsx";
 import FindPeer from "./pages/FindPeer.jsx";
 import Session from "./pages/Session.jsx";
+import Sessions from "./pages/Sessions.jsx";
+import SessionDetail from "./pages/SessionDetail.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import ProfileGate from "./components/ProfileGate.jsx";
 import SocketProvider from "./components/SocketProvider.jsx";
@@ -46,6 +48,22 @@ export default function App() {
           element={
             <ProtectedRoute>
               <Session />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/sessions"
+          element={
+            <ProtectedRoute>
+              <Sessions />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/sessions/:sessionId"
+          element={
+            <ProtectedRoute>
+              <SessionDetail />
             </ProtectedRoute>
           }
         />

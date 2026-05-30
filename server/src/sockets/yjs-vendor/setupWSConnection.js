@@ -1,10 +1,11 @@
-// vendored from y-websocket-server (MIT). adapted for our auth flow.
+// vendored from y-websocket-server (MIT). adapted for our auth flow + snapshot hook.
 import * as Y from "yjs";
 import * as syncProtocol from "y-protocols/sync.js";
 import * as awarenessProtocol from "y-protocols/awareness.js";
 import * as encoding from "lib0/encoding";
 import * as decoding from "lib0/decoding";
 import * as map from "lib0/map";
+import { recordSnapshot, clearSnapshot } from "../../services/sessionDocStore.js";
 
 const wsReadyStateConnecting = 0;
 const wsReadyStateOpen = 1;
@@ -14,6 +15,10 @@ const messageSync = 0;
 const messageAwareness = 1;
 
 const docs = new Map();
+
+function extractSessionId(docName) {
+  return docName.startsWith("session:") ? docName.slice("session:".length) : null;
+}
 
 class WSSharedDoc extends Y.Doc {
   constructor(name) {
@@ -44,6 +49,12 @@ class WSSharedDoc extends Y.Doc {
     this.awareness.on("update", awarenessChangeHandler);
     this.on("update", updateHandler);
   }
+
+  snapshot() {
+    const code = this.getText("code").toString();
+    const meta = this.getMap("meta").toJSON();
+    return { code, language: meta.language || "python" };
+  }
 }
 
 function updateHandler(update, origin, doc) {
@@ -52,6 +63,9 @@ function updateHandler(update, origin, doc) {
   syncProtocol.writeUpdate(encoder, update);
   const message = encoding.toUint8Array(encoder);
   doc.conns.forEach((_, conn) => send(doc, conn, message));
+
+  const sessionId = extractSessionId(doc.name);
+  if (sessionId) recordSnapshot(sessionId, doc.snapshot());
 }
 
 function getYDoc(docname) {
@@ -99,6 +113,8 @@ function closeConn(doc, conn) {
       null
     );
     if (doc.conns.size === 0) {
+      const sessionId = extractSessionId(doc.name);
+      if (sessionId) recordSnapshot(sessionId, doc.snapshot());
       docs.delete(doc.name);
       doc.destroy();
     }
@@ -155,7 +171,6 @@ export function setupWSConnection(conn, req, { docName }) {
     pongReceived = true;
   });
 
-  // send sync step 1
   {
     const encoder = encoding.createEncoder();
     encoding.writeVarUint(encoder, messageSync);
@@ -175,4 +190,20 @@ export function setupWSConnection(conn, req, { docName }) {
       send(doc, conn, encoding.toUint8Array(e2));
     }
   }
+}
+
+export function getInMemoryDoc(sessionId) {
+  return docs.get(`session:${sessionId}`) || null;
+}
+
+export function dropInMemoryDoc(sessionId) {
+  const doc = docs.get(`session:${sessionId}`);
+  if (doc) {
+    for (const conn of doc.conns.keys()) {
+      try { conn.close(); } catch {}
+    }
+    docs.delete(`session:${sessionId}`);
+    doc.destroy();
+  }
+  clearSnapshot(sessionId);
 }

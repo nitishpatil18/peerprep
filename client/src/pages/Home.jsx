@@ -18,7 +18,7 @@ export default function Home() {
             : "complete your profile to enable matchmaking."}
         </p>
 
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
           <Link
             to="/find-peer"
             className="block p-5 border border-zinc-800 rounded hover:bg-zinc-900"
@@ -26,6 +26,15 @@ export default function Home() {
             <div className="text-zinc-100 font-medium">find a peer</div>
             <div className="text-sm text-zinc-400 mt-1">
               get matched for a live mock interview
+            </div>
+          </Link>
+          <Link
+            to="/sessions"
+            className="block p-5 border border-zinc-800 rounded hover:bg-zinc-900"
+          >
+            <div className="text-zinc-100 font-medium">past sessions</div>
+            <div className="text-sm text-zinc-400 mt-1">
+              review your previous interviews and code
             </div>
           </Link>
           <Link

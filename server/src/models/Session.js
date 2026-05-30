@@ -19,6 +19,10 @@ const sessionSchema = new mongoose.Schema(
     matchReasons: { type: Object },
     startedAt: { type: Date },
     endedAt: { type: Date },
+    endedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    finalCode: { type: String, default: "" },
+    finalLanguage: { type: String, default: "python" },
+    durationSeconds: { type: Number, default: 0 },
   },
   { timestamps: true }
 );
@@ -32,6 +36,10 @@ sessionSchema.methods.toJSON = function () {
     matchReasons: this.matchReasons,
     startedAt: this.startedAt,
     endedAt: this.endedAt,
+    endedBy: this.endedBy?.toString(),
+    finalCode: this.finalCode,
+    finalLanguage: this.finalLanguage,
+    durationSeconds: this.durationSeconds,
     createdAt: this.createdAt,
   };
 };
