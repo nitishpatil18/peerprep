@@ -9,7 +9,6 @@ import { recordSnapshot, clearSnapshot } from "../../services/sessionDocStore.js
 
 const wsReadyStateConnecting = 0;
 const wsReadyStateOpen = 1;
-
 const pingTimeout = 30000;
 const messageSync = 0;
 const messageAwareness = 1;
@@ -53,7 +52,11 @@ class WSSharedDoc extends Y.Doc {
   snapshot() {
     const code = this.getText("code").toString();
     const meta = this.getMap("meta").toJSON();
-    return { code, language: meta.language || "python" };
+    return {
+      code,
+      language: meta.language || "python",
+      questionSlug: meta.questionSlug || null,
+    };
   }
 }
 

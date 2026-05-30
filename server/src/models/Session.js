@@ -22,6 +22,7 @@ const sessionSchema = new mongoose.Schema(
     endedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     finalCode: { type: String, default: "" },
     finalLanguage: { type: String, default: "python" },
+    finalQuestionSlug: { type: String, default: null },
     durationSeconds: { type: Number, default: 0 },
   },
   { timestamps: true }
@@ -39,6 +40,7 @@ sessionSchema.methods.toJSON = function () {
     endedBy: this.endedBy?.toString(),
     finalCode: this.finalCode,
     finalLanguage: this.finalLanguage,
+    finalQuestionSlug: this.finalQuestionSlug,
     durationSeconds: this.durationSeconds,
     createdAt: this.createdAt,
   };

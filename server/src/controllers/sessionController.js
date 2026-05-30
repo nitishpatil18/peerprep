@@ -28,6 +28,7 @@ async function hydrateSession(session, requesterId) {
     durationSeconds: session.durationSeconds,
     finalCode: session.finalCode,
     finalLanguage: session.finalLanguage,
+    finalQuestionSlug: session.finalQuestionSlug,
     createdAt: session.createdAt,
   };
 }
@@ -66,6 +67,7 @@ export async function endSession(req, res) {
   if (snapshot) {
     session.finalCode = snapshot.code || "";
     session.finalLanguage = snapshot.language || "python";
+    session.finalQuestionSlug = snapshot.questionSlug || null;
   }
 
   session.status = "completed";
@@ -119,6 +121,7 @@ export async function listMySessions(req, res) {
       endedAt: s.endedAt,
       durationSeconds: s.durationSeconds,
       finalLanguage: s.finalLanguage,
+      finalQuestionSlug: s.finalQuestionSlug,
       createdAt: s.createdAt,
     };
   });

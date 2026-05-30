@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import Navbar from "../components/Navbar.jsx";
 import VideoTile from "../components/VideoTile.jsx";
@@ -6,6 +6,8 @@ import CallControls from "../components/CallControls.jsx";
 import CollabEditor from "../components/CollabEditor.jsx";
 import SessionTimer from "../components/SessionTimer.jsx";
 import EndSessionButton from "../components/EndSessionButton.jsx";
+import QuestionPanel from "../components/QuestionPanel.jsx";
+import QuestionPicker from "../components/QuestionPicker.jsx";
 import { useWebRTC } from "../hooks/useWebRTC.js";
 import { fetchSession, endSession } from "../api/sessions.js";
 import { getSocket } from "../socket.js";
@@ -17,6 +19,10 @@ export default function Session() {
   const [loadErr, setLoadErr] = useState(null);
   const [peerStatus, setPeerStatus] = useState("present");
   const [ending, setEnding] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [questionSlug, setQuestionSlug] = useState(null);
+
+  const setQuestionFnRef = useRef(null);
 
   useEffect(() => {
     fetchSession(sessionId)
@@ -32,12 +38,8 @@ export default function Session() {
       if (endedId !== sessionId) return;
       nav("/sessions");
     }
-    function onPeerLeft() {
-      setPeerStatus("left");
-    }
-    function onPeerJoined() {
-      setPeerStatus("present");
-    }
+    function onPeerLeft() { setPeerStatus("left"); }
+    function onPeerJoined() { setPeerStatus("present"); }
 
     socket.on("session:ended", onEnded);
     socket.on("session:peer-left", onPeerLeft);
@@ -71,6 +73,21 @@ export default function Session() {
     } catch (e) {
       setEnding(false);
       alert(e.response?.data?.error || "failed to end session");
+    }
+  }
+
+  const handleQuestionSlugChange = useCallback((slug) => {
+    setQuestionSlug(slug);
+  }, []);
+
+  const handlePickQuestionExpose = useCallback((fn) => {
+    setQuestionFnRef.current = fn;
+  }, []);
+
+  function handlePick(slug) {
+    setPickerOpen(false);
+    if (setQuestionFnRef.current) {
+      setQuestionFnRef.current({ slug });
     }
   }
 
@@ -119,7 +136,15 @@ export default function Session() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div className="lg:col-span-2 space-y-3">
-            <CollabEditor sessionId={sessionId} />
+            <QuestionPanel
+              slug={questionSlug}
+              onChange={() => setPickerOpen(true)}
+            />
+            <CollabEditor
+              sessionId={sessionId}
+              onQuestionSlugChange={handleQuestionSlugChange}
+              onPickQuestion={handlePickQuestionExpose}
+            />
           </div>
 
           <div className="space-y-3">
@@ -144,6 +169,12 @@ export default function Session() {
           </div>
         </div>
       </div>
+
+      <QuestionPicker
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        onPick={handlePick}
+      />
     </div>
   );
 }

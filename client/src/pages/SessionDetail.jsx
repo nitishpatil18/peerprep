@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import Navbar from "../components/Navbar.jsx";
 import Editor from "@monaco-editor/react";
 import { fetchSession } from "../api/sessions.js";
+import { fetchQuestion } from "../api/questions.js";
 import { LANGUAGES } from "../utils/codeTemplates.js";
 
 function formatDuration(secs) {
@@ -16,11 +17,17 @@ function formatDuration(secs) {
 export default function SessionDetail() {
   const { sessionId } = useParams();
   const [session, setSession] = useState(null);
+  const [question, setQuestion] = useState(null);
   const [err, setErr] = useState(null);
 
   useEffect(() => {
     fetchSession(sessionId)
-      .then(setSession)
+      .then((s) => {
+        setSession(s);
+        if (s.finalQuestionSlug) {
+          fetchQuestion(s.finalQuestionSlug).then(setQuestion).catch(() => {});
+        }
+      })
       .catch((e) => setErr(e.response?.data?.error || "failed to load"));
   }, [sessionId]);
 
@@ -73,6 +80,26 @@ export default function SessionDetail() {
             <Link to={`/session/${session.id}`} className="underline text-blue-300">
               rejoin
             </Link>
+          </div>
+        )}
+
+        {question && (
+          <div className="mt-6">
+            <h2 className="text-sm font-medium text-zinc-300 mb-2">question attempted</h2>
+            <div className="p-4 border border-zinc-800 rounded bg-zinc-900">
+              <div className="flex items-center gap-2 flex-wrap mb-2">
+                <span className="text-zinc-100 font-medium">{question.title}</span>
+                <span className="text-xs px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300">
+                  {question.difficulty}
+                </span>
+                {question.topics.slice(0, 3).map((t) => (
+                  <span key={t} className="text-xs px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400">
+                    {t}
+                  </span>
+                ))}
+              </div>
+              <p className="text-sm text-zinc-400">{question.statement}</p>
+            </div>
           </div>
         )}
 

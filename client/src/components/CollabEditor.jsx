@@ -6,11 +6,12 @@ import { MonacoBinding } from "y-monaco";
 import { LANGUAGES, STARTER_CODE, colorForUser } from "../utils/codeTemplates.js";
 import { useAuthStore } from "../store/authStore.js";
 
-export default function CollabEditor({ sessionId }) {
+export default function CollabEditor({ sessionId, onQuestionSlugChange, onPickQuestion }) {
   const { token, user } = useAuthStore();
   const [language, setLanguage] = useState("python");
   const [connStatus, setConnStatus] = useState("connecting");
   const [peerCount, setPeerCount] = useState(0);
+  const [questionSlug, setQuestionSlug] = useState(null);
 
   const ydocRef = useRef(null);
   const providerRef = useRef(null);
@@ -18,7 +19,7 @@ export default function CollabEditor({ sessionId }) {
   const editorRef = useRef(null);
   const monacoRef = useRef(null);
   const ytextRef = useRef(null);
-  const ylangRef = useRef(null);
+  const ymetaRef = useRef(null);
   const styleElRef = useRef(null);
 
   useEffect(() => {
@@ -36,28 +37,31 @@ export default function CollabEditor({ sessionId }) {
     const ytext = ydoc.getText("code");
     ytextRef.current = ytext;
 
-    const ylang = ydoc.getMap("meta");
-    ylangRef.current = ylang;
+    const ymeta = ydoc.getMap("meta");
+    ymetaRef.current = ymeta;
 
-    provider.on("status", (event) => {
-      setConnStatus(event.status);
-    });
+    provider.on("status", (event) => setConnStatus(event.status));
 
     provider.on("sync", (isSynced) => {
       if (isSynced && ytext.length === 0) {
-        const initial = STARTER_CODE.python;
         ydoc.transact(() => {
-          ytext.insert(0, initial);
-          if (!ylang.get("language")) ylang.set("language", "python");
+          ytext.insert(0, STARTER_CODE.python);
+          if (!ymeta.get("language")) ymeta.set("language", "python");
         });
       }
-      const lang = ylang.get("language");
+      const lang = ymeta.get("language");
       if (lang) setLanguage(lang);
+      const slug = ymeta.get("questionSlug");
+      setQuestionSlug(slug || null);
+      onQuestionSlugChange?.(slug || null);
     });
 
-    ylang.observe(() => {
-      const lang = ylang.get("language");
+    ymeta.observe(() => {
+      const lang = ymeta.get("language");
       if (lang) setLanguage(lang);
+      const slug = ymeta.get("questionSlug");
+      setQuestionSlug(slug || null);
+      onQuestionSlugChange?.(slug || null);
     });
 
     provider.awareness.setLocalStateField("user", {
@@ -83,13 +87,13 @@ export default function CollabEditor({ sessionId }) {
       ydocRef.current = null;
       providerRef.current = null;
       ytextRef.current = null;
-      ylangRef.current = null;
+      ymetaRef.current = null;
       if (styleElRef.current) {
         styleElRef.current.remove();
         styleElRef.current = null;
       }
     };
-  }, [sessionId, token, user?.id, user?.name]);
+  }, [sessionId, token, user?.id, user?.name, onQuestionSlugChange]);
 
   function handleEditorMount(editor, monaco) {
     editorRef.current = editor;
@@ -133,14 +137,14 @@ export default function CollabEditor({ sessionId }) {
     const newLang = e.target.value;
     const ydoc = ydocRef.current;
     const ytext = ytextRef.current;
-    const ylang = ylangRef.current;
-    if (!ydoc || !ytext || !ylang) return;
+    const ymeta = ymetaRef.current;
+    if (!ydoc || !ytext || !ymeta) return;
 
     const replaceTemplate =
       ytext.toString().trim() === (STARTER_CODE[language] || "").trim();
 
     ydoc.transact(() => {
-      ylang.set("language", newLang);
+      ymeta.set("language", newLang);
       if (replaceTemplate) {
         ytext.delete(0, ytext.length);
         ytext.insert(0, STARTER_CODE[newLang] || "");
@@ -158,6 +162,20 @@ export default function CollabEditor({ sessionId }) {
       ytext.insert(0, STARTER_CODE[language] || "");
     });
   }
+
+  // expose a way for parent to set the question slug
+  // we do this by listening to a prop change, see Session.jsx
+  useEffect(() => {
+    if (typeof onPickQuestion !== "function") return;
+    onPickQuestion(({ slug }) => {
+      const ymeta = ymetaRef.current;
+      const ydoc = ydocRef.current;
+      if (!ymeta || !ydoc) return;
+      ydoc.transact(() => {
+        ymeta.set("questionSlug", slug);
+      });
+    });
+  }, [onPickQuestion]);
 
   const monacoLang =
     LANGUAGES.find((l) => l.value === language)?.monaco || "plaintext";
