@@ -11,15 +11,24 @@ import { notFound, errorHandler } from "./middleware/error.js";
 
 const app = express();
 
+const allowedOrigins = (process.env.CLIENT_URL || "http://localhost:5173")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+
 app.use(helmet());
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    origin: (origin, cb) => {
+      if (!origin) return cb(null, true);
+      if (allowedOrigins.includes(origin)) return cb(null, true);
+      return cb(new Error(`origin ${origin} not allowed by cors`));
+    },
     credentials: true,
   })
 );
 app.use(express.json({ limit: "1mb" }));
-app.use(morgan("dev"));
+app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
 
 app.get("/api/health", (req, res) => {
   res.json({ ok: true, service: "peerprep-server", ts: Date.now() });

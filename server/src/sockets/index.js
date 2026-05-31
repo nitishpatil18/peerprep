@@ -5,9 +5,14 @@ import { registerSessionHandlers } from "./sessionSignaling.js";
 let io = null;
 
 export function initSocket(httpServer) {
+  const allowedOrigins = (process.env.CLIENT_URL || "http://localhost:5173")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
   io = new Server(httpServer, {
     cors: {
-      origin: process.env.CLIENT_URL || "http://localhost:5173",
+      origin: allowedOrigins,
       credentials: true,
     },
   });
@@ -26,12 +31,16 @@ export function initSocket(httpServer) {
 
   io.on("connection", (socket) => {
     socket.join(`user:${socket.userId}`);
-    console.log(`socket connected: user=${socket.userId} sid=${socket.id}`);
+    if (process.env.NODE_ENV !== "production") {
+      console.log(`socket connected: user=${socket.userId} sid=${socket.id}`);
+    }
 
     registerSessionHandlers(io, socket);
 
     socket.on("disconnect", (reason) => {
-      console.log(`socket disconnected: user=${socket.userId} reason=${reason}`);
+      if (process.env.NODE_ENV !== "production") {
+        console.log(`socket disconnected: user=${socket.userId} reason=${reason}`);
+      }
     });
   });
 
