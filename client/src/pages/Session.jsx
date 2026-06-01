@@ -11,6 +11,7 @@ import QuestionPanel from "../components/QuestionPanel.jsx";
 import QuestionPicker from "../components/QuestionPicker.jsx";
 import { Container, Badge } from "../components/ui";
 import { useWebRTC } from "../hooks/useWebRTC.js";
+import { useVoiceActivity } from "../hooks/useVoiceActivity.js";
 import { fetchSession, endSession } from "../api/sessions.js";
 import { getSocket } from "../socket.js";
 
@@ -68,6 +69,9 @@ export default function Session() {
     isScreenSharing,
     peerIsSharing,
   } = useWebRTC({ sessionId, enabled: !!session && !ending });
+
+  const localSpeaking = useVoiceActivity(localStream);
+  const remoteSpeaking = useVoiceActivity(remoteStream);
 
   const me = session?.participants.find((p) => p.isMe);
   const peer = session?.participants.find((p) => !p.isMe);
@@ -168,7 +172,6 @@ export default function Session() {
         </div>
 
         {someoneSharing ? (
-          /* layout when someone is sharing: big screen + small webcam + side panel */
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
             <div className="lg:col-span-3 space-y-3">
               <div className="aspect-video w-full">
@@ -188,10 +191,12 @@ export default function Session() {
                   mirror={!isScreenSharing}
                   audioMuted={audioMuted}
                   videoOff={videoOff && !isScreenSharing}
+                  speaking={localSpeaking}
                 />
                 <VideoTile
                   stream={remoteStream}
                   label={peer?.name || "peer"}
+                  speaking={remoteSpeaking}
                 />
               </div>
             </div>
@@ -215,7 +220,6 @@ export default function Session() {
             </div>
           </div>
         ) : (
-          /* default layout: editor primary + video sidebar */
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <div className="lg:col-span-2 space-y-3">
               <QuestionPanel
@@ -237,10 +241,12 @@ export default function Session() {
                 mirror
                 audioMuted={audioMuted}
                 videoOff={videoOff}
+                speaking={localSpeaking}
               />
               <VideoTile
                 stream={remoteStream}
                 label={peer?.name || "peer"}
+                speaking={remoteSpeaking}
               />
               {rtcError && (
                 <p className="text-xs text-red-400 text-center">{rtcError}</p>
@@ -257,7 +263,6 @@ export default function Session() {
           </div>
         )}
 
-        {/* keep editor mounted in hidden div so yjs sync continues during screen share */}
         {someoneSharing && (
           <div className="hidden">
             <CollabEditor

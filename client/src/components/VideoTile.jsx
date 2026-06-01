@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Monitor, MicOff, VideoOff } from "lucide-react";
+import { cn } from "./ui/cn.js";
 
 export default function VideoTile({
   stream,
@@ -9,6 +10,7 @@ export default function VideoTile({
   isSharing = false,
   audioMuted = false,
   videoOff = false,
+  speaking = false,
 }) {
   const ref = useRef(null);
 
@@ -19,14 +21,25 @@ export default function VideoTile({
   }, [stream]);
 
   return (
-    <div className="relative bg-zinc-900 border border-zinc-800 rounded-md overflow-hidden aspect-video">
+    <div
+      className={cn(
+        "relative bg-zinc-900 border rounded-md overflow-hidden aspect-video transition-all duration-150",
+        speaking && !audioMuted
+          ? "border-emerald-400/80 shadow-[0_0_0_2px_rgba(52,211,153,0.4)]"
+          : "border-zinc-800"
+      )}
+    >
       {stream ? (
         <video
           ref={ref}
           autoPlay
           playsInline
           muted={muted}
-          className={`w-full h-full ${isSharing ? "object-contain bg-black" : "object-cover"} ${mirror && !isSharing ? "scale-x-[-1]" : ""}`}
+          className={cn(
+            "w-full h-full",
+            isSharing ? "object-contain bg-black" : "object-cover",
+            mirror && !isSharing && "scale-x-[-1]"
+          )}
         />
       ) : (
         <div className="absolute inset-0 flex items-center justify-center text-zinc-500 text-sm">
