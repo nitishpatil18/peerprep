@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 import Navbar from "../components/Navbar.jsx";
 import VideoTile from "../components/VideoTile.jsx";
 import CallControls from "../components/CallControls.jsx";
@@ -8,6 +9,7 @@ import SessionTimer from "../components/SessionTimer.jsx";
 import EndSessionButton from "../components/EndSessionButton.jsx";
 import QuestionPanel from "../components/QuestionPanel.jsx";
 import QuestionPicker from "../components/QuestionPicker.jsx";
+import { Container, Badge } from "../components/ui";
 import { useWebRTC } from "../hooks/useWebRTC.js";
 import { fetchSession, endSession } from "../api/sessions.js";
 import { getSocket } from "../socket.js";
@@ -21,6 +23,8 @@ export default function Session() {
   const [ending, setEnding] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [questionSlug, setQuestionSlug] = useState(null);
+  const [audioMuted, setAudioMuted] = useState(false);
+  const [videoOff, setVideoOff] = useState(false);
 
   const setQuestionFnRef = useRef(null);
 
@@ -59,6 +63,10 @@ export default function Session() {
     toggleAudio,
     toggleVideo,
     endCall,
+    startScreenShare,
+    stopScreenShare,
+    isScreenSharing,
+    peerIsSharing,
   } = useWebRTC({ sessionId, enabled: !!session && !ending });
 
   const me = session?.participants.find((p) => p.isMe);
@@ -91,16 +99,35 @@ export default function Session() {
     }
   }
 
+  function handleToggleAudioWrapped() {
+    const enabled = toggleAudio();
+    setAudioMuted(!enabled);
+    return enabled;
+  }
+  function handleToggleVideoWrapped() {
+    const enabled = toggleVideo();
+    setVideoOff(!enabled);
+    return enabled;
+  }
+
+  async function handleToggleScreenShare() {
+    if (isScreenSharing) {
+      await stopScreenShare();
+    } else {
+      await startScreenShare();
+    }
+  }
+
   if (loadErr) {
     return (
       <div className="min-h-screen bg-zinc-950 text-zinc-100">
         <Navbar />
-        <div className="max-w-2xl mx-auto px-4 py-12 text-center">
+        <Container size="md" className="py-16 text-center">
           <p className="text-red-400">{loadErr}</p>
-          <Link to="/" className="inline-block mt-4 text-sm text-zinc-300 underline">
-            back to home
+          <Link to="/home" className="inline-flex items-center gap-1.5 mt-4 text-sm text-zinc-300 underline">
+            <ArrowLeft className="h-3.5 w-3.5" /> back to home
           </Link>
-        </div>
+        </Container>
       </div>
     );
   }
@@ -113,62 +140,134 @@ export default function Session() {
     );
   }
 
+  const connectionTone =
+    connectionState === "connected" ? "success" :
+    connectionState === "failed" ? "danger" : "info";
+
+  const someoneSharing = isScreenSharing || peerIsSharing;
+
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
       <Navbar />
-      <div className="max-w-7xl mx-auto px-4 py-4">
+      <Container size="xl" className="py-4">
         <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
           <div>
-            <h1 className="text-lg font-semibold">
+            <h1 className="text-lg font-semibold tracking-tight">
               mock interview with {peer?.name || "peer"}
             </h1>
-            <p className="text-xs text-zinc-500 mt-0.5">
+            <div className="text-xs text-zinc-500 mt-0.5 flex items-center gap-2 flex-wrap">
               <SessionTimer startedAt={session.startedAt || session.createdAt} />
-              <span className="mx-2">·</span>
-              call: <span className="text-zinc-300">{connectionState}</span>
-              {peerStatus === "left" && (
-                <span className="ml-2 text-amber-400">· peer left</span>
-              )}
-            </p>
+              <span>·</span>
+              <Badge tone={connectionTone}>{connectionState}</Badge>
+              {peerStatus === "left" && <Badge tone="warning">peer left</Badge>}
+              {peerIsSharing && <Badge tone="brand">peer sharing screen</Badge>}
+              {isScreenSharing && <Badge tone="brand">you are sharing</Badge>}
+            </div>
           </div>
           <EndSessionButton onConfirm={handleEnd} disabled={ending} />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div className="lg:col-span-2 space-y-3">
-            <QuestionPanel
-              slug={questionSlug}
-              onChange={() => setPickerOpen(true)}
-            />
+        {someoneSharing ? (
+          /* layout when someone is sharing: big screen + small webcam + side panel */
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+            <div className="lg:col-span-3 space-y-3">
+              <div className="aspect-video w-full">
+                <VideoTile
+                  stream={peerIsSharing ? remoteStream : localStream}
+                  label={peerIsSharing ? `${peer?.name || "peer"} (screen)` : "your screen"}
+                  isSharing
+                  muted={isScreenSharing}
+                  mirror={false}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3 max-w-md">
+                <VideoTile
+                  stream={localStream}
+                  label={`you${me?.name ? ` (${me.name})` : ""}`}
+                  muted
+                  mirror={!isScreenSharing}
+                  audioMuted={audioMuted}
+                  videoOff={videoOff && !isScreenSharing}
+                />
+                <VideoTile
+                  stream={remoteStream}
+                  label={peer?.name || "peer"}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <QuestionPanel
+                slug={questionSlug}
+                onChange={() => setPickerOpen(true)}
+              />
+              {rtcError && (
+                <p className="text-xs text-red-400 text-center">{rtcError}</p>
+              )}
+              <CallControls
+                onToggleAudio={handleToggleAudioWrapped}
+                onToggleVideo={handleToggleVideoWrapped}
+                onEndCall={handleEnd}
+                onToggleScreenShare={handleToggleScreenShare}
+                isScreenSharing={isScreenSharing}
+                screenShareEnabled={connectionState === "connected"}
+              />
+            </div>
+          </div>
+        ) : (
+          /* default layout: editor primary + video sidebar */
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="lg:col-span-2 space-y-3">
+              <QuestionPanel
+                slug={questionSlug}
+                onChange={() => setPickerOpen(true)}
+              />
+              <CollabEditor
+                sessionId={sessionId}
+                onQuestionSlugChange={handleQuestionSlugChange}
+                onPickQuestion={handlePickQuestionExpose}
+              />
+            </div>
+
+            <div className="space-y-3">
+              <VideoTile
+                stream={localStream}
+                label={`you${me?.name ? ` (${me.name})` : ""}`}
+                muted
+                mirror
+                audioMuted={audioMuted}
+                videoOff={videoOff}
+              />
+              <VideoTile
+                stream={remoteStream}
+                label={peer?.name || "peer"}
+              />
+              {rtcError && (
+                <p className="text-xs text-red-400 text-center">{rtcError}</p>
+              )}
+              <CallControls
+                onToggleAudio={handleToggleAudioWrapped}
+                onToggleVideo={handleToggleVideoWrapped}
+                onEndCall={handleEnd}
+                onToggleScreenShare={handleToggleScreenShare}
+                isScreenSharing={isScreenSharing}
+                screenShareEnabled={connectionState === "connected"}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* keep editor mounted in hidden div so yjs sync continues during screen share */}
+        {someoneSharing && (
+          <div className="hidden">
             <CollabEditor
               sessionId={sessionId}
               onQuestionSlugChange={handleQuestionSlugChange}
               onPickQuestion={handlePickQuestionExpose}
             />
           </div>
-
-          <div className="space-y-3">
-            <VideoTile
-              stream={localStream}
-              label={`you${me?.name ? ` (${me.name})` : ""}`}
-              muted
-              mirror
-            />
-            <VideoTile
-              stream={remoteStream}
-              label={peer?.name || "peer"}
-            />
-            {rtcError && (
-              <p className="text-xs text-red-400 text-center">{rtcError}</p>
-            )}
-            <CallControls
-              onToggleAudio={toggleAudio}
-              onToggleVideo={toggleVideo}
-              onEndCall={handleEnd}
-            />
-          </div>
-        </div>
-      </div>
+        )}
+      </Container>
 
       <QuestionPicker
         open={pickerOpen}

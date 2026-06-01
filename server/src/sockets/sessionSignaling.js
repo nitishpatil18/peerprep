@@ -61,6 +61,15 @@ export function registerSessionHandlers(io, socket) {
     });
   });
 
+  socket.on("session:screen-share", ({ sessionId, sharing }) => {
+    if (!sessionId) return;
+    if (socket.sessionId !== sessionId) return;
+    socket.to(roomKey(sessionId)).emit("session:screen-share", {
+      peerUserId: socket.userId,
+      sharing: !!sharing,
+    });
+  });
+
   socket.on("disconnecting", () => {
     if (socket.sessionId) {
       socket.to(roomKey(socket.sessionId)).emit("session:peer-left", {
