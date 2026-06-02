@@ -35,7 +35,7 @@ export default function CollabEditor({
 
     const wsUrl = import.meta.env.VITE_API_URL.replace(/^http/, "ws") + "/yjs";
     const provider = new WebsocketProvider(wsUrl, sessionId, ydoc, {
-      params: { token, ns: "code" },
+      params: { token },
     });
     providerRef.current = provider;
 

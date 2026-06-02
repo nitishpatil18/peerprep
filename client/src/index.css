@@ -50,3 +50,10 @@ body {
   outline-color: theme("colors.brand.500");
   outline-offset: 2px;
 }
+
+.excalidraw-wrapper {
+  position: relative;
+}
+.excalidraw-wrapper .excalidraw {
+  height: 100%;
+}

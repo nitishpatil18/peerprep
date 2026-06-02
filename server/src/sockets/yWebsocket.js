@@ -4,11 +4,13 @@ import { verifyToken } from "../utils/jwt.js";
 import Session from "../models/Session.js";
 import url from "url";
 
+const ALLOWED_NAMESPACES = new Set(["code", "whiteboard"]);
+
 export function attachYWebsocket(httpServer) {
   const wss = new WebSocketServer({ noServer: true });
 
-  wss.on("connection", (ws, req, sessionId) => {
-    setupWSConnection(ws, req, { docName: `session:${sessionId}` });
+  wss.on("connection", (ws, req, docName) => {
+    setupWSConnection(ws, req, { docName });
   });
 
   httpServer.on("upgrade", async (req, socket, head) => {
@@ -17,8 +19,13 @@ export function attachYWebsocket(httpServer) {
 
     const sessionId = parsed.pathname.replace("/yjs/", "");
     const token = parsed.query.token;
+    const ns = parsed.query.ns || "code";
 
     if (!sessionId || !token) {
+      socket.destroy();
+      return;
+    }
+    if (!ALLOWED_NAMESPACES.has(ns)) {
       socket.destroy();
       return;
     }
@@ -38,8 +45,10 @@ export function attachYWebsocket(httpServer) {
         return;
       }
 
+      const docName = `session:${sessionId}:${ns}`;
+
       wss.handleUpgrade(req, socket, head, (ws) => {
-        wss.emit("connection", ws, req, sessionId);
+        wss.emit("connection", ws, req, docName);
       });
     } catch (e) {
       console.error("yjs upgrade auth failed:", e.message);
@@ -47,5 +56,5 @@ export function attachYWebsocket(httpServer) {
     }
   });
 
-  console.log("y-websocket mounted at /yjs/:sessionId");
+  console.log("y-websocket mounted at /yjs/:sessionId?ns=code|whiteboard");
 }

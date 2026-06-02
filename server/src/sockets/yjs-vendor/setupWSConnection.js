@@ -1,4 +1,4 @@
-// vendored from y-websocket-server (MIT). adapted for our auth flow + snapshot hook.
+// vendored from y-websocket-server (MIT). adapted for our auth + snapshot hook.
 import * as Y from "yjs";
 import * as syncProtocol from "y-protocols/sync.js";
 import * as awarenessProtocol from "y-protocols/awareness.js";
@@ -15,8 +15,10 @@ const messageAwareness = 1;
 
 const docs = new Map();
 
-function extractSessionId(docName) {
-  return docName.startsWith("session:") ? docName.slice("session:".length) : null;
+function extractCodeSessionId(docName) {
+  // we only snapshot the code doc, not the whiteboard
+  const m = docName.match(/^session:([a-f0-9]+):code$/);
+  return m ? m[1] : null;
 }
 
 class WSSharedDoc extends Y.Doc {
@@ -67,7 +69,7 @@ function updateHandler(update, origin, doc) {
   const message = encoding.toUint8Array(encoder);
   doc.conns.forEach((_, conn) => send(doc, conn, message));
 
-  const sessionId = extractSessionId(doc.name);
+  const sessionId = extractCodeSessionId(doc.name);
   if (sessionId) recordSnapshot(sessionId, doc.snapshot());
 }
 
@@ -116,7 +118,7 @@ function closeConn(doc, conn) {
       null
     );
     if (doc.conns.size === 0) {
-      const sessionId = extractSessionId(doc.name);
+      const sessionId = extractCodeSessionId(doc.name);
       if (sessionId) recordSnapshot(sessionId, doc.snapshot());
       docs.delete(doc.name);
       doc.destroy();
@@ -195,18 +197,21 @@ export function setupWSConnection(conn, req, { docName }) {
   }
 }
 
-export function getInMemoryDoc(sessionId) {
-  return docs.get(`session:${sessionId}`) || null;
+export function getInMemoryDoc(sessionId, ns = "code") {
+  return docs.get(`session:${sessionId}:${ns}`) || null;
 }
 
 export function dropInMemoryDoc(sessionId) {
-  const doc = docs.get(`session:${sessionId}`);
-  if (doc) {
-    for (const conn of doc.conns.keys()) {
-      try { conn.close(); } catch {}
+  for (const ns of ["code", "whiteboard"]) {
+    const docName = `session:${sessionId}:${ns}`;
+    const doc = docs.get(docName);
+    if (doc) {
+      for (const conn of doc.conns.keys()) {
+        try { conn.close(); } catch {}
+      }
+      docs.delete(docName);
+      doc.destroy();
     }
-    docs.delete(`session:${sessionId}`);
-    doc.destroy();
   }
   clearSnapshot(sessionId);
 }

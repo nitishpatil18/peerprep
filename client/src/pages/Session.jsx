@@ -5,6 +5,8 @@ import Navbar from "../components/Navbar.jsx";
 import VideoTile from "../components/VideoTile.jsx";
 import CallControls from "../components/CallControls.jsx";
 import CollabEditor from "../components/CollabEditor.jsx";
+import CollabWhiteboard from "../components/CollabWhiteboard.jsx";
+import SessionTabs from "../components/SessionTabs.jsx";
 import SessionTimer from "../components/SessionTimer.jsx";
 import EndSessionButton from "../components/EndSessionButton.jsx";
 import QuestionPanel from "../components/QuestionPanel.jsx";
@@ -26,8 +28,10 @@ export default function Session() {
   const [questionSlug, setQuestionSlug] = useState(null);
   const [audioMuted, setAudioMuted] = useState(false);
   const [videoOff, setVideoOff] = useState(false);
+  const [activeTab, setActiveTab] = useState("code");
 
   const setQuestionFnRef = useRef(null);
+  const setTabFnRef = useRef(null);
 
   useEffect(() => {
     fetchSession(sessionId)
@@ -95,6 +99,21 @@ export default function Session() {
   const handlePickQuestionExpose = useCallback((fn) => {
     setQuestionFnRef.current = fn;
   }, []);
+
+  const handleTabChange = useCallback((tab) => {
+    setActiveTab(tab);
+  }, []);
+
+  const handleSetTabExpose = useCallback((fn) => {
+    setTabFnRef.current = fn;
+  }, []);
+
+  function handleTabClick(tab) {
+    setActiveTab(tab);
+    if (setTabFnRef.current) {
+      setTabFnRef.current(tab);
+    }
+  }
 
   function handlePick(slug) {
     setPickerOpen(false);
@@ -226,11 +245,21 @@ export default function Session() {
                 slug={questionSlug}
                 onChange={() => setPickerOpen(true)}
               />
-              <CollabEditor
-                sessionId={sessionId}
-                onQuestionSlugChange={handleQuestionSlugChange}
-                onPickQuestion={handlePickQuestionExpose}
-              />
+              <div className="flex items-center justify-between">
+                <SessionTabs active={activeTab} onChange={handleTabClick} />
+              </div>
+              <div className={activeTab === "code" ? "block" : "hidden"}>
+                <CollabEditor
+                  sessionId={sessionId}
+                  onQuestionSlugChange={handleQuestionSlugChange}
+                  onPickQuestion={handlePickQuestionExpose}
+                  onTabChange={handleTabChange}
+                  onSetTab={handleSetTabExpose}
+                />
+              </div>
+              <div className={activeTab === "whiteboard" ? "block" : "hidden"}>
+                <CollabWhiteboard sessionId={sessionId} />
+              </div>
             </div>
 
             <div className="space-y-3">
@@ -269,6 +298,8 @@ export default function Session() {
               sessionId={sessionId}
               onQuestionSlugChange={handleQuestionSlugChange}
               onPickQuestion={handlePickQuestionExpose}
+              onTabChange={handleTabChange}
+              onSetTab={handleSetTabExpose}
             />
           </div>
         )}
