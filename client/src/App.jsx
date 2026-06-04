@@ -7,6 +7,7 @@ import Home from "./pages/Home.jsx";
 import Profile from "./pages/Profile.jsx";
 import FindPeer from "./pages/FindPeer.jsx";
 import Session from "./pages/Session.jsx";
+import SessionFeedback from "./pages/SessionFeedback.jsx";
 import Sessions from "./pages/Sessions.jsx";
 import SessionDetail from "./pages/SessionDetail.jsx";
 import NotFound from "./pages/NotFound.jsx";
@@ -28,58 +29,13 @@ export default function App() {
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
-        <Route
-          path="/home"
-          element={
-            <ProtectedRoute>
-              <ProfileGate>
-                <Home />
-              </ProfileGate>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/profile"
-          element={
-            <ProtectedRoute>
-              <Profile />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/find-peer"
-          element={
-            <ProtectedRoute>
-              <ProfileGate>
-                <FindPeer />
-              </ProfileGate>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/session/:sessionId"
-          element={
-            <ProtectedRoute>
-              <Session />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/sessions"
-          element={
-            <ProtectedRoute>
-              <Sessions />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/sessions/:sessionId"
-          element={
-            <ProtectedRoute>
-              <SessionDetail />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/home" element={<ProtectedRoute><ProfileGate><Home /></ProfileGate></ProtectedRoute>} />
+        <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+        <Route path="/find-peer" element={<ProtectedRoute><ProfileGate><FindPeer /></ProfileGate></ProtectedRoute>} />
+        <Route path="/session/:sessionId" element={<ProtectedRoute><Session /></ProtectedRoute>} />
+        <Route path="/sessions/:sessionId/feedback" element={<ProtectedRoute><SessionFeedback /></ProtectedRoute>} />
+        <Route path="/sessions" element={<ProtectedRoute><Sessions /></ProtectedRoute>} />
+        <Route path="/sessions/:sessionId" element={<ProtectedRoute><SessionDetail /></ProtectedRoute>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       <ProposalModal />

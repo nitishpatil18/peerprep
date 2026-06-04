@@ -45,7 +45,7 @@ export default function Session() {
 
     function onEnded({ sessionId: endedId }) {
       if (endedId !== sessionId) return;
-      nav("/sessions");
+      nav(`/sessions/${sessionId}/feedback`);
     }
     function onPeerLeft() { setPeerStatus("left"); }
     function onPeerJoined() { setPeerStatus("present"); }
@@ -85,7 +85,7 @@ export default function Session() {
     try {
       await endSession(sessionId);
       endCall();
-      nav("/sessions");
+      nav(`/sessions/${sessionId}/feedback`);
     } catch (e) {
       setEnding(false);
       alert(e.response?.data?.error || "failed to end session");
