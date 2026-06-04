@@ -8,6 +8,7 @@ import matchmakingRoutes from "./routes/matchmakingRoutes.js";
 import sessionRoutes from "./routes/sessionRoutes.js";
 import questionRoutes from "./routes/questionRoutes.js";
 import feedbackRoutes from "./routes/feedbackRoutes.js";
+import skillRoutes from "./routes/skillRoutes.js";
 import { notFound, errorHandler } from "./middleware/error.js";
 
 const app = express();
@@ -40,6 +41,7 @@ app.use("/api/profile", profileRoutes);
 app.use("/api/matchmaking", matchmakingRoutes);
 app.use("/api/sessions", sessionRoutes);
 app.use("/api/questions", questionRoutes);
+app.use("/api/skills", skillRoutes);
 app.use("/api", feedbackRoutes);
 
 app.use(notFound);

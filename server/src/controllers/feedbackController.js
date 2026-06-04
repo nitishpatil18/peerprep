@@ -1,5 +1,6 @@
 import Session from "../models/Session.js";
 import SessionFeedback from "../models/SessionFeedback.js";
+import { updateSkillRatings } from "../services/skillRatingService.js";
 
 const ALLOWED_DIFFICULTY = ["too_easy", "right", "too_hard"];
 
@@ -42,7 +43,13 @@ export async function submitFeedback(req, res) {
     { upsert: true, new: true }
   );
 
-  res.json({ feedback });
+  const skillUpdates = await updateSkillRatings(req.user.id, {
+    peerRating,
+    difficultyRating,
+    questionSlug: session.finalQuestionSlug,
+  });
+
+  res.json({ feedback, skillUpdates });
 }
 
 export async function getMyFeedbackForSession(req, res) {
