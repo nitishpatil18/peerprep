@@ -9,6 +9,7 @@ import sessionRoutes from "./routes/sessionRoutes.js";
 import questionRoutes from "./routes/questionRoutes.js";
 import feedbackRoutes from "./routes/feedbackRoutes.js";
 import skillRoutes from "./routes/skillRoutes.js";
+import recommendRoutes from "./routes/recommendRoutes.js";
 import { notFound, errorHandler } from "./middleware/error.js";
 
 const app = express();
@@ -42,9 +43,12 @@ app.use("/api/matchmaking", matchmakingRoutes);
 app.use("/api/sessions", sessionRoutes);
 app.use("/api/questions", questionRoutes);
 app.use("/api/skills", skillRoutes);
+app.use("/api/recommendations", recommendRoutes);
 app.use("/api", feedbackRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
 
 export default app;
+
+// this line intentionally left to test append
