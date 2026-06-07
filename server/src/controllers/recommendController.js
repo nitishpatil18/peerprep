@@ -3,7 +3,7 @@ import Session from "../models/Session.js";
 import { getUserSkillRatings } from "../services/skillRatingService.js";
 
 const ML_SERVICE_URL = process.env.ML_SERVICE_URL || "http://localhost:8000";
-const TIMEOUT_MS = 15000;
+const TIMEOUT_MS = 90000;
 
 export async function getRecommendations(req, res) {
   try {
