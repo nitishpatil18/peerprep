@@ -10,6 +10,7 @@ import Session from "./pages/Session.jsx";
 import SessionFeedback from "./pages/SessionFeedback.jsx";
 import Sessions from "./pages/Sessions.jsx";
 import SessionDetail from "./pages/SessionDetail.jsx";
+import Insights from "./pages/Insights.jsx";
 import NotFound from "./pages/NotFound.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import ProfileGate from "./components/ProfileGate.jsx";
@@ -19,9 +20,7 @@ import { useAuthStore } from "./store/authStore.js";
 
 export default function App() {
   const hydrate = useAuthStore((s) => s.hydrate);
-  useEffect(() => {
-    hydrate();
-  }, [hydrate]);
+  useEffect(() => { hydrate(); }, [hydrate]);
 
   return (
     <SocketProvider>
@@ -36,6 +35,7 @@ export default function App() {
         <Route path="/sessions/:sessionId/feedback" element={<ProtectedRoute><SessionFeedback /></ProtectedRoute>} />
         <Route path="/sessions" element={<ProtectedRoute><Sessions /></ProtectedRoute>} />
         <Route path="/sessions/:sessionId" element={<ProtectedRoute><SessionDetail /></ProtectedRoute>} />
+        <Route path="/insights" element={<ProtectedRoute><Insights /></ProtectedRoute>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       <ProposalModal />

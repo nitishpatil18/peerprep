@@ -9,6 +9,7 @@ import { cn } from "./ui/cn.js";
 const NAV_LINKS = [
   { to: "/find-peer", label: "find peer" },
   { to: "/sessions", label: "sessions" },
+  { to: "/insights", label: "insights" },
   { to: "/profile", label: "profile" },
 ];
 
@@ -46,15 +47,11 @@ export default function Navbar() {
     <nav className="sticky top-0 z-40 border-b border-zinc-800/80 bg-zinc-950/80 backdrop-blur-md">
       <div className="mx-auto max-w-7xl px-4 md:px-6 h-14 flex items-center justify-between">
         <Logo />
-
         {user && (
           <div className="hidden md:flex items-center gap-1">
-            {NAV_LINKS.map((l) => (
-              <NavItem key={l.to} to={l.to} label={l.label} />
-            ))}
+            {NAV_LINKS.map((l) => <NavItem key={l.to} to={l.to} label={l.label} />)}
           </div>
         )}
-
         <div className="hidden md:flex items-center gap-3">
           {user ? (
             <>
@@ -63,51 +60,31 @@ export default function Navbar() {
                 onClick={handleLogout}
                 className="inline-flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-100 transition-colors"
               >
-                <LogOut className="h-3.5 w-3.5" />
-                logout
+                <LogOut className="h-3.5 w-3.5" /> logout
               </button>
             </>
           ) : (
             <>
-              <Link
-                to="/login"
-                className="text-sm text-zinc-300 hover:text-zinc-100 transition-colors"
-              >
-                login
-              </Link>
-              <Link
-                to="/signup"
-                className="inline-flex items-center h-9 px-4 rounded-md bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors"
-              >
+              <Link to="/login" className="text-sm text-zinc-300 hover:text-zinc-100 transition-colors">login</Link>
+              <Link to="/signup" className="inline-flex items-center h-9 px-4 rounded-md bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors">
                 get started
               </Link>
             </>
           )}
         </div>
-
-        <button
-          className="md:hidden p-1.5 text-zinc-400 hover:text-zinc-100"
-          onClick={() => setOpen((v) => !v)}
-          aria-label="toggle menu"
-        >
+        <button className="md:hidden p-1.5 text-zinc-400 hover:text-zinc-100" onClick={() => setOpen((v) => !v)}>
           {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
       </div>
-
       {open && (
         <div className="md:hidden border-t border-zinc-800 bg-zinc-950">
           <div className="px-4 py-3 space-y-1">
             {user ? (
               <>
-                {NAV_LINKS.map((l) => (
-                  <NavItem key={l.to} to={l.to} label={l.label} onClick={() => setOpen(false)} />
-                ))}
+                {NAV_LINKS.map((l) => <NavItem key={l.to} to={l.to} label={l.label} onClick={() => setOpen(false)} />)}
                 <div className="pt-2 mt-2 border-t border-zinc-800 flex items-center justify-between">
                   <span className="text-xs text-zinc-500">{user.name}</span>
-                  <button
-                    onClick={() => { handleLogout(); setOpen(false); }}
-                    className="inline-flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-100"
-                  >
+                  <button onClick={() => { handleLogout(); setOpen(false); }} className="inline-flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-100">
                     <LogOut className="h-3.5 w-3.5" /> logout
                   </button>
                 </div>
