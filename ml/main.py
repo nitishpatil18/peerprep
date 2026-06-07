@@ -2,27 +2,24 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import List, Dict, Optional
 import numpy as np
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 import time
 
 app = FastAPI(title="peerprep-ml")
 
-_model = None
-_embedding_cache: Dict[str, List[float]] = {}
+_vectorizer: Optional[TfidfVectorizer] = None
+_question_matrix = None
+_question_slugs: List[str] = []
 
 
-def get_model():
-    global _model
-    if _model is None:
-        from sentence_transformers import SentenceTransformer
-        print("loading all-MiniLM-L6-v2 ...")
-        _model = SentenceTransformer("all-MiniLM-L6-v2")
-        print("model ready")
-    return _model
+def get_vectorizer():
+    return _vectorizer
 
 
 @app.get("/health")
 def health():
-    return {"ok": True, "model_loaded": _model is not None, "cached": len(_embedding_cache)}
+    return {"ok": True, "model_loaded": _vectorizer is not None, "cached": len(_question_slugs)}
 
 
 class Question(BaseModel):
@@ -46,10 +43,31 @@ class RecommendRequest(BaseModel):
     topK: int = 5
 
 
+def build_text(q: Question) -> str:
+    return f"{q.title} {q.statement[:200]} {' '.join(q.topics)} {q.difficulty}"
+
+
+def get_or_fit_vectorizer(questions: List[Question]):
+    global _vectorizer, _question_matrix, _question_slugs
+
+    slugs = [q.slug for q in questions]
+    if _vectorizer is not None and slugs == _question_slugs:
+        return _vectorizer, _question_matrix
+
+    texts = [build_text(q) for q in questions]
+    vec = TfidfVectorizer(ngram_range=(1, 2), max_features=5000, sublinear_tf=True)
+    matrix = vec.fit_transform(texts)
+
+    _vectorizer = vec
+    _question_matrix = matrix
+    _question_slugs = slugs
+
+    return vec, matrix
+
+
 @app.post("/recommend")
 async def recommend(req: RecommendRequest):
     start = time.time()
-    model = get_model()
 
     skill_map = {sr.topic: sr.rating for sr in req.skillRatings}
     attempted = set(req.attemptedSlugs)
@@ -58,30 +76,28 @@ async def recommend(req: RecommendRequest):
     if not candidates:
         candidates = req.questions
 
-    # embed questions not yet cached
-    to_embed = [q for q in candidates if q.slug not in _embedding_cache]
-    if to_embed:
-        texts = [
-            f"{q.title}. {q.statement[:200]}. topics: {', '.join(q.topics)}"
-            for q in to_embed
-        ]
-        embeddings = model.encode(texts, normalize_embeddings=True)
-        for q, emb in zip(to_embed, embeddings):
-            _embedding_cache[q.slug] = emb.tolist()
-
-    # identify weak topics (below 1000 rating)
     weak_topics = [sr.topic for sr in req.skillRatings if sr.rating < 1000]
     if not weak_topics:
-        weak_topics = list(skill_map.keys()) if skill_map else ["arrays", "dp", "trees"]
+        if skill_map:
+            weak_topics = sorted(skill_map, key=lambda t: skill_map[t])[:3]
+        else:
+            weak_topics = ["arrays", "dp", "trees"]
 
-    # user weakness vector
-    weak_text = f"interview practice: {', '.join(weak_topics)}"
-    user_vec = np.array(model.encode(weak_text, normalize_embeddings=True))
+    vec, full_matrix = get_or_fit_vectorizer(req.questions)
+
+    candidate_slugs = {q.slug for q in candidates}
+    candidate_indices = [i for i, q in enumerate(req.questions) if q.slug in candidate_slugs]
+    candidate_questions = [req.questions[i] for i in candidate_indices]
+
+    candidate_matrix = full_matrix[candidate_indices]
+
+    weak_text = f"practice {' '.join(weak_topics)} interview problems"
+    user_vec = vec.transform([weak_text])
+    similarities = cosine_similarity(user_vec, candidate_matrix).flatten()
 
     scored = []
-    for q in candidates:
-        q_vec = np.array(_embedding_cache.get(q.slug, []))
-        semantic_score = float(np.dot(user_vec, q_vec)) if len(q_vec) > 1 else 0.5
+    for i, q in enumerate(candidate_questions):
+        semantic_score = float(similarities[i])
 
         q_topics = set(q.topics)
         weak_set = set(weak_topics)
@@ -91,7 +107,7 @@ async def recommend(req: RecommendRequest):
         avg_rating = float(np.mean([skill_map.get(t, 1000) for t in q.topics])) if q.topics else 1000.0
         diff_score = difficulty_fit(q.difficulty, avg_rating)
 
-        score = 0.40 * semantic_score + 0.35 * topic_overlap + 0.25 * diff_score
+        score = 0.35 * semantic_score + 0.40 * topic_overlap + 0.25 * diff_score
 
         overlap_list = list(q_topics & weak_set)
         reasons = []
